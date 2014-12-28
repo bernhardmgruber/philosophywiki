@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -82,10 +83,12 @@ namespace DumpPreprocessor
 			//	</revision>
 			//	</page>
 
+
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
 			using (var writer = new StreamWriter(outFile))
 			{
+				Stopwatch sw = Stopwatch.StartNew();
 				reader.MoveToContent();
 
 				RawMeta meta = null;
@@ -142,9 +145,12 @@ namespace DumpPreprocessor
 
 					}
 				}
-			}
 
-			Console.WriteLine("Finished");
+				sw.Stop();
+				writer.WriteLine();
+				writer.WriteLine("// Finished after " + sw.Elapsed);
+				Console.WriteLine("Finished after " + sw.Elapsed);
+			}
 		}
 
 		private static int lastPercentage = -1;
@@ -167,21 +173,26 @@ namespace DumpPreprocessor
 			writer.WriteLine();
 		}
 
-		private static Regex linkRegex = new Regex("\\[\\[(.*?)(\\|.*?)?\\]\\]", RegexOptions.Compiled);
+		private static Regex linkRegex = new Regex("\\[\\[(.*?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
 
 		private static void WritePage(RawPage page, TextWriter writer)
 		{
 			page.Text = page.Text.Replace('\n', ' ');
-			
-			// find links
+
+			// find links regex
 			var matches = linkRegex.Matches(page.Text);
-			var links = matches.Cast<Match>().Select(m => m.Groups[1].Value);
+			var links = new HashSet<string>(matches.Cast<Match>().Select(m => m.Groups[1].Value));
 
 			writer.WriteLine(page.Id);
 			writer.WriteLine(page.Title);
-			writer.WriteLine(page.Text);
+			//writer.WriteLine(page.Text);
 			foreach (var link in links)
+			{
+				if (link.StartsWith("File:"))
+					continue; // skip links to files
+
 				writer.Write(link + ",");
+			}
 			writer.WriteLine();
 			writer.WriteLine();
 		}
