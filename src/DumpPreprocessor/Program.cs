@@ -115,6 +115,7 @@ namespace DumpPreprocessor
 				metaWriter.WriteLine("TotalLinks: " + totalLinks);
 				metaWriter.WriteLine("Finished after: " + sw.Elapsed);
 
+				Console.WriteLine();
 				Console.WriteLine("Finished after " + sw.Elapsed);
 			}
 		}
