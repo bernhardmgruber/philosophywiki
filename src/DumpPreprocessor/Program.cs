@@ -164,14 +164,14 @@ namespace DumpPreprocessor
 					page.Text = page.Text.Replace('\n', ' ');
 
 					// find links using regex and make them unique (this is expensive and can take half an hour !!!)
-					var matches = linkRegex.Matches(page.Text).Cast<Match>().ToList();
-					var matchedLinks = matches.Select(m => m.Groups[1].Value).ToList();
+					var matches = linkRegex.Matches(page.Text).Cast<Match>();
+					var matchedLinks = matches.Select(m => m.Groups[1].Value);
 					var links = matchedLinks
 						.Where(l => !l.Contains(':')) // filter links to pages not in namespace main/articles and File: links
 						.Select(l => CanonicalPageName(l))
 						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
 						.Distinct()
-						.ToList(); // evaluate eager to keep locked region as short as possible
+						.ToArray(); // evaluate eager to keep locked region as short as possible
 
 					lock (writer)
 					{
