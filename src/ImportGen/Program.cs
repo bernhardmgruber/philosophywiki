@@ -53,7 +53,7 @@ namespace ImportGen
 		{
 			Func<string, string> formatPage = t => "(Page{title:\"" + title + "\"})";
 
-			writer.WriteLine("CREATE " + formatPage(title) + "-[links_to]->" + formatPage(;
+			//writer.WriteLine("CREATE " + formatPage(title) + "-[links_to]->" + formatPage(;
 		}
 	}
 }

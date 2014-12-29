@@ -5,88 +5,44 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml;
 
 namespace DumpPreprocessor
 {
 	class Program
 	{
+		private static int threadCount;
+		private static Semaphore linkWrites;
+
+		private static long totalTitles = 0;
+		private static long totalLinks = 0;
+
 		static void Main(string[] args)
 		{
+			threadCount = Environment.ProcessorCount * 2;
+			linkWrites = new Semaphore(threadCount, threadCount);
+
 			Console.WriteLine("Wikipedia dump processor (enwiki-<date>-pages-articles.xml)");
 
 			if (args.Length < 2)
-				Console.WriteLine("Please specify two file name as command line argument. Input and output file.");
+			{
+				Console.WriteLine("Please specify two file name as command line argument. Input file and output stem.");
+				return;
+			}
 
 			string dumpFile = args[0];
-			string outFile = args[1];
-
-			//	<siteinfo>
-			//	<sitename>Wikipedia</sitename>
-			//	<dbname>enwiki</dbname>
-			//	<base>http://en.wikipedia.org/wiki/Main_Page</base>
-			//	<generator>MediaWiki 1.25wmf10</generator>
-			//	<case>first-letter</case>
-			//	<namespaces>
-			//	  <namespace key="-2" case="first-letter">Media</namespace>
-			//	  <namespace key="-1" case="first-letter">Special</namespace>
-			//	  <namespace key="0" case="first-letter" />
-			//	  <namespace key="1" case="first-letter">Talk</namespace>
-			//	  <namespace key="2" case="first-letter">User</namespace>
-			//	  <namespace key="3" case="first-letter">User talk</namespace>
-			//	  <namespace key="4" case="first-letter">Wikipedia</namespace>
-			//	  <namespace key="5" case="first-letter">Wikipedia talk</namespace>
-			//	  <namespace key="6" case="first-letter">File</namespace>
-			//	  <namespace key="7" case="first-letter">File talk</namespace>
-			//	  <namespace key="8" case="first-letter">MediaWiki</namespace>
-			//	  <namespace key="9" case="first-letter">MediaWiki talk</namespace>
-			//	  <namespace key="10" case="first-letter">Template</namespace>
-			//	  <namespace key="11" case="first-letter">Template talk</namespace>
-			//	  <namespace key="12" case="first-letter">Help</namespace>
-			//	  <namespace key="13" case="first-letter">Help talk</namespace>
-			//	  <namespace key="14" case="first-letter">Category</namespace>
-			//	  <namespace key="15" case="first-letter">Category talk</namespace>
-			//	  <namespace key="100" case="first-letter">Portal</namespace>
-			//	  <namespace key="101" case="first-letter">Portal talk</namespace>
-			//	  <namespace key="108" case="first-letter">Book</namespace>
-			//	  <namespace key="109" case="first-letter">Book talk</namespace>
-			//	  <namespace key="118" case="first-letter">Draft</namespace>
-			//	  <namespace key="119" case="first-letter">Draft talk</namespace>
-			//	  <namespace key="446" case="first-letter">Education Program</namespace>
-			//	  <namespace key="447" case="first-letter">Education Program talk</namespace>
-			//	  <namespace key="710" case="first-letter">TimedText</namespace>
-			//	  <namespace key="711" case="first-letter">TimedText talk</namespace>
-			//	  <namespace key="828" case="first-letter">Module</namespace>
-			//	  <namespace key="829" case="first-letter">Module talk</namespace>
-			//	  <namespace key="2600" case="first-letter">Topic</namespace>
-			//	</namespaces>
-			//  </siteinfo>
-			//  <page>
-			//	<title>AccessibleComputing</title>
-			//	<ns>0</ns>
-			//	<id>10</id>
-			//	<redirect title="Computer accessibility" />
-			//	<revision>
-			//	  <id>631144794</id>
-			//	  <parentid>381202555</parentid>
-			//	  <timestamp>2014-10-26T04:50:23Z</timestamp>
-			//	  <contributor>
-			//		<username>Paine Ellsworth</username>
-			//		<id>9092818</id>
-			//	  </contributor>
-			//	  <comment>add [[WP:RCAT|rcat]]s</comment>
-			//	  <model>wikitext</model>
-			//	  <format>text/x-wiki</format>
-			//	  <text xml:space="preserve">#REDIRECT [[Computer accessibility]] {{Redr|move|from CamelCase|up}}</text>
-			//	  <sha1>4ro7vvppa5kmm0o1egfjztzcwd0vabw</sha1>
-			//	</revision>
-			//	</page>
-
+			string linkFile = args[1] + ".links.txt";
+			string titleFile = args[1] + ".titles.txt";
+			string metaFile = args[1] + ".meta.txt";
 
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
-			using (var writer = new StreamWriter(outFile))
+			using (var linkWriter = new StreamWriter(linkFile))
+			using (var titleWriter = new StreamWriter(titleFile))
+			using (var metaWriter = new StreamWriter(metaFile))
 			{
 				Stopwatch sw = Stopwatch.StartNew();
 				reader.MoveToContent();
@@ -132,23 +88,33 @@ namespace DumpPreprocessor
 					{
 						if (reader.Name == "page")
 						{
-							WritePage(page, writer);
+							WritePageTitle(page, titleWriter);
+							WritePageLinksAsync(page, linkWriter);
 							page = null;
 						}
 						else if (page != null && reader.Name == "revision")
 							inRevision = false;
 						else if (reader.Name == "siteinfo")
 						{
-							WriteMeta(meta, writer);
+							WriteMeta(meta, metaWriter);
 							meta = null;
 						}
 
 					}
 				}
 
+				// all write slots should be in use by now (now task can starve now)
+				// in the end, aquire all write slots back
+				// if this is successfull, all writing taks should have completed
+				for (int i = 0; i < threadCount; i++)
+					linkWrites.WaitOne();
+
 				sw.Stop();
-				writer.WriteLine();
-				writer.WriteLine("// Finished after " + sw.Elapsed);
+
+				metaWriter.WriteLine("TotalTitles: " + totalTitles);
+				metaWriter.WriteLine("TotalLinks: " + totalLinks);
+				metaWriter.WriteLine("Finished after: " + sw.Elapsed);
+
 				Console.WriteLine("Finished after " + sw.Elapsed);
 			}
 		}
@@ -167,34 +133,83 @@ namespace DumpPreprocessor
 
 		private static void WriteMeta(RawMeta meta, TextWriter writer)
 		{
-			writer.WriteLine("// File created: " + DateTime.Now);
-			writer.WriteLine("// Database: " + meta.DatabaseName);
-			writer.WriteLine("// Generator: " + meta.Generator);
-			writer.WriteLine();
+			writer.WriteLine("File created: " + DateTime.Now);
+			writer.WriteLine("Database: " + meta.DatabaseName);
+			writer.WriteLine("Generator: " + meta.Generator);
 		}
 
-		private static Regex linkRegex = new Regex("\\[\\[(.*?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
-
-		private static void WritePage(RawPage page, TextWriter writer)
+		private static void WritePageTitle(RawPage page, TextWriter writer)
 		{
-			page.Text = page.Text.Replace('\n', ' ');
-
-			// find links regex
-			var matches = linkRegex.Matches(page.Text);
-			var links = new HashSet<string>(matches.Cast<Match>().Select(m => m.Groups[1].Value));
-
-			writer.WriteLine(page.Id);
+			Interlocked.Increment(ref totalTitles);
+			//writer.WriteLine(page.Id);
 			writer.WriteLine(page.Title);
-			//writer.WriteLine(page.Text);
-			foreach (var link in links)
-			{
-				if (link.StartsWith("File:"))
-					continue; // skip links to files
+			writer.WriteLine(CanonicalPageName(page.Title));
+		}
 
-				writer.Write(link + ",");
-			}
-			writer.WriteLine();
-			writer.WriteLine();
+		private static Regex linkRegex = new Regex("\\[\\[([^#|]+?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
+
+		private static void WritePageLinksAsync(RawPage page, TextWriter writer)
+		{
+			// skip all pages which are not in the main/article namespace
+			// see: http://en.wikipedia.org/wiki/Wikipedia:Namespace
+			if (page.NamespaceId != 0)
+				return;
+
+			linkWrites.WaitOne(); // wait for write slot
+
+			Task.Run(() =>
+			{
+				try
+				{
+					page.Text = page.Text.Replace('\n', ' ');
+
+					// find links using regex and make them unique (this is expensive and can take half an hour !!!)
+					var matches = linkRegex.Matches(page.Text).Cast<Match>().ToList();
+					var matchedLinks = matches.Select(m => m.Groups[1].Value).ToList();
+					var links = matchedLinks
+						.Where(l => !l.Contains(':')) // filter links to pages not in namespace main/articles and File: links
+						.Select(l => CanonicalPageName(l))
+						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
+						.Distinct()
+						.ToList(); // evaluate eager to keep locked region as short as possible
+
+					lock (writer)
+					{
+						//writer.WriteLine(page.Id);
+						writer.WriteLine(page.Title);
+						//writer.WriteLine(page.Text);
+						foreach (var link in links)
+						{
+							Interlocked.Increment(ref totalLinks);
+							writer.Write(link + ",");
+						}
+						writer.WriteLine();
+						writer.WriteLine();
+					}
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("Write task failed: " + e);
+					throw e;
+				}
+				finally
+				{
+					linkWrites.Release(); // release a write slot
+				}
+
+			});
+		}
+
+		private static string CanonicalPageName(string link)
+		{
+			string l = link;
+			l = l.Replace(' ', '_'); // space and underscore are equivalent
+			l = l.Trim('_'); // trim spaces and underscores at the start and end
+			l = HttpUtility.HtmlDecode(l); // decode html entities
+			if (l.Length > 0 && char.IsLower(l[0])) // ensure first character is upper case
+				l = char.ToUpper(l[0]) + l.Substring(1);
+
+			return l;
 		}
 	}
 }
