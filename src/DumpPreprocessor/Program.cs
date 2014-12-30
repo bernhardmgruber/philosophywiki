@@ -25,18 +25,18 @@ namespace DumpPreprocessor
 			threadCount = Environment.ProcessorCount * 2;
 			linkWrites = new Semaphore(threadCount, threadCount);
 
-			Console.WriteLine("Wikipedia dump processor (enwiki-<date>-pages-articles.xml)");
+			Console.WriteLine("Wikipedia dump preprocessor (enwiki-<date>-pages-articles.xml)");
 
-			if (args.Length < 2)
+			if (args.Length < 1)
 			{
-				Console.WriteLine("Please specify two file name as command line argument. Input file and output stem.");
+				Console.WriteLine("Please specify the input file stem.");
 				return;
 			}
 
-			string dumpFile = args[0];
-			string linkFile = args[1] + ".links.txt";
-			string titleFile = args[1] + ".titles.txt";
-			string metaFile = args[1] + ".meta.txt";
+			string dumpFile = args[0] + ".xml";
+			string linkFile = args[0] + ".links.txt";
+			string titleFile = args[0] + ".titles.txt";
+			string metaFile = args[0] + ".meta.txt";
 
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
@@ -185,7 +185,7 @@ namespace DumpPreprocessor
 							writer.Write(link + ",");
 						}
 						writer.WriteLine();
-						writer.WriteLine();
+						//writer.WriteLine();
 					}
 				}
 				catch (Exception e)
