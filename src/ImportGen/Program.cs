@@ -118,7 +118,7 @@ create table Link
 		{
 			Func<string, bool, string> selectId = (t, useCTitle) => "(select id from Page where " + (useCTitle ? "c" : "") + "title = \"" + t + "\")";
 
-			foreach (var l in links.Split(',').Where(l => l.Length != 0))
+			foreach (var l in links.Split('|'))
 			{
 				writer.WriteLine("insert into Link values (" + selectId(readableTitle, false) + ", " + selectId(l, true) + ")");
 				count++;

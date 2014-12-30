@@ -174,18 +174,14 @@ namespace DumpPreprocessor
 						.Distinct()
 						.ToArray(); // evaluate eager to keep locked region as short as possible
 
+					Interlocked.Add(ref totalLinks, links.Length);
+
 					lock (writer)
 					{
 						//writer.WriteLine(page.Id);
 						writer.WriteLine(page.Title);
 						//writer.WriteLine(page.Text);
-						foreach (var link in links)
-						{
-							Interlocked.Increment(ref totalLinks);
-							writer.Write(link + ",");
-						}
-						writer.WriteLine();
-						//writer.WriteLine();
+						writer.WriteLine(string.Join("|", links));
 					}
 				}
 				catch (Exception e)
