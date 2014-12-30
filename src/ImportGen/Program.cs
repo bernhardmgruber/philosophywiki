@@ -28,12 +28,11 @@ namespace ImportGen
 			if (args.Length < 1)
 				Console.WriteLine("Please specify the input files stem");
 
+			string stem = args[0];
+
 			string titlesFile = args[0] + ".titles.txt";
 			string linksFile = args[0] + ".links.txt";
 			string metaFile = args[0] + ".meta.txt";
-			string schemaSqlFile = args[0] + ".schema.sql";
-			string titlesSqlFile = args[0] + ".titles.sql";
-			string linksSqlFile = args[0] + ".links.sql";
 
 			string[] metaLines = File.ReadAllLines(metaFile);
 
@@ -44,7 +43,7 @@ namespace ImportGen
 				meta.Add(parts[0], parts[1]);
 			}
 
-			using (var writer = new StreamWriter(schemaSqlFile))
+			using (var writer = new StreamWriter(stem + ".schema.sql"))
 			{
 				// write schema
 				writer.Write(@"
@@ -65,7 +64,8 @@ create table Link
 ");
 			}
 
-			using (var writer = new StreamWriter(titlesSqlFile))
+			using (var sqlWriter = new StreamWriter(stem + ".titles.sql"))
+			using (var cypherWriter = new StreamWriter(stem + ".titles.cypher"))
 			{
 				Console.WriteLine("Writing titles");
 				long count = 0;
@@ -76,7 +76,13 @@ create table Link
 					{
 						string readableTitle = reader.ReadLine();
 						string canonicalTitle = reader.ReadLine();
-						WriteTitle(readableTitle, canonicalTitle, writer);
+
+						// escape quotes
+						readableTitle = readableTitle.Replace("'", "''");
+						canonicalTitle = canonicalTitle.Replace("'", "''");
+
+						sqlWriter.WriteLine("INSERT INTO Page VALUES (null, '" + readableTitle + "', '" + canonicalTitle + "')");
+						cypherWriter.WriteLine("CREATE (Page { title : '" + readableTitle + "', ctitle : '" + canonicalTitle + "' })");
 						UpdateProgress(stream);
 						count++;
 					}
@@ -86,7 +92,8 @@ create table Link
 				Console.WriteLine("Wrote " + count + " titles (" + meta["TotalTitles"] + " in meta)");
 			}
 
-			using (var writer = new StreamWriter(linksSqlFile))
+			using (var sqlWriter = new StreamWriter(stem + ".links.sql"))
+			using (var cypherWriter = new StreamWriter(stem + ".links.cypher"))
 			{
 				Console.WriteLine("Writing links");
 				long count = 0;
@@ -94,11 +101,23 @@ create table Link
 				using (var stream = new FileStream(linksFile, FileMode.Open, FileAccess.Read))
 				using (var reader = new StreamReader(stream))
 				{
+					Func<string, bool, string> sqlSelectId = (t, useCTitle) => "(SELECT id FROM Page WHERE " + (useCTitle ? "c" : "") + "title = \"" + t + "\")";
 					while (!reader.EndOfStream)
 					{
 						string readableTitle = reader.ReadLine();
 						string links = reader.ReadLine();
-						WriteLinks(readableTitle, links, writer, ref count);
+						{
+							foreach (var link in links.Split('|'))
+							{
+								// escape quotes
+								readableTitle = readableTitle.Replace("'", "''");
+								var l = link.Replace("'", "''");
+
+								sqlWriter.WriteLine("INSERT INTO Link VALUES (" + sqlSelectId(readableTitle, false) + ", " + sqlSelectId(l, true) + ")");
+								cypherWriter.WriteLine("MATCH (s:Page),(d:Page) WHERE a.title = '" + readableTitle + "' AND b.ctitle = '" + l + "' CREATE (a)-[links_to]->(b)");
+								count++;
+							}
+						}
 						UpdateProgress(stream);
 					}
 				}
@@ -107,22 +126,6 @@ create table Link
 			}
 
 			Console.WriteLine("Finished");
-		}
-
-		private static void WriteTitle(string readableTitle, string canonicalTitle, TextWriter writer)
-		{
-			writer.WriteLine("insert into Page values (null, \"" + readableTitle + "\", \"" + canonicalTitle + "\")");
-		}
-
-		private static void WriteLinks(string readableTitle, string links, StreamWriter writer, ref long count)
-		{
-			Func<string, bool, string> selectId = (t, useCTitle) => "(select id from Page where " + (useCTitle ? "c" : "") + "title = \"" + t + "\")";
-
-			foreach (var l in links.Split('|'))
-			{
-				writer.WriteLine("insert into Link values (" + selectId(readableTitle, false) + ", " + selectId(l, true) + ")");
-				count++;
-			}
 		}
 	}
 }

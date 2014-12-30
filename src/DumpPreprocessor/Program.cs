@@ -147,6 +147,7 @@ namespace DumpPreprocessor
 			writer.WriteLine(CanonicalPageName(page.Title));
 		}
 
+		// does not implement the reverse pipe trick
 		private static Regex linkRegex = new Regex("\\[\\[([^#|]+?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
 
 		private static void WritePageLinksAsync(RawPage page, TextWriter writer)
@@ -181,6 +182,9 @@ namespace DumpPreprocessor
 						//writer.WriteLine(page.Id);
 						writer.WriteLine(page.Title);
 						//writer.WriteLine(page.Text);
+						foreach (var l in links)
+							if (l.Contains('|'))
+								Console.WriteLine("Fatal: link " + l + " on page " + page.Title + " contains |");
 						writer.WriteLine(string.Join("|", links));
 					}
 				}
