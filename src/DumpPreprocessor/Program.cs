@@ -169,7 +169,6 @@ namespace DumpPreprocessor
 					var matches = linkRegex.Matches(page.Text).Cast<Match>();
 					var matchedLinks = matches.Select(m => m.Groups[1].Value);
 					var links = matchedLinks
-						.Where(l => !l.Contains(':')) // filter links to pages not in namespace main/articles and File: links
 						.Select(l => CanonicalPageName(l))
 						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
 						.Distinct()
