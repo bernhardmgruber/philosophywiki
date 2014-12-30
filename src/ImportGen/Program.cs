@@ -26,7 +26,10 @@ namespace ImportGen
 			Console.WriteLine("Database script generator (run on output of DumpPreprocessor)");
 
 			if (args.Length < 1)
+			{
 				Console.WriteLine("Please specify the input files stem");
+				return;
+			}
 
 			string stem = args[0];
 
@@ -97,32 +100,45 @@ create table Link
 			{
 				Console.WriteLine("Writing links");
 				long count = 0;
+				long separatorCount = 0;
 				lastPercentage = -1;
 				using (var stream = new FileStream(linksFile, FileMode.Open, FileAccess.Read))
 				using (var reader = new StreamReader(stream))
 				{
-					Func<string, bool, string> sqlSelectId = (t, useCTitle) => "(SELECT id FROM Page WHERE " + (useCTitle ? "c" : "") + "title = \"" + t + "\")";
 					while (!reader.EndOfStream)
 					{
 						string readableTitle = reader.ReadLine();
+						readableTitle = readableTitle.Replace("'", "''"); // escape quotes
 						string links = reader.ReadLine();
+						foreach (var link in links.SplitLazy('|'))
 						{
-							foreach (var link in links.Split('|'))
-							{
-								// escape quotes
-								readableTitle = readableTitle.Replace("'", "''");
-								var l = link.Replace("'", "''");
+							// escape quotes
+							var l = link.Replace("'", "''");
 
-								sqlWriter.WriteLine("INSERT INTO Link VALUES (" + sqlSelectId(readableTitle, false) + ", " + sqlSelectId(l, true) + ")");
-								cypherWriter.WriteLine("MATCH (s:Page),(d:Page) WHERE a.title = '" + readableTitle + "' AND b.ctitle = '" + l + "' CREATE (a)-[links_to]->(b)");
-								count++;
-							}
+							sqlWriter.Write("INSERT INTO Link VALUES (");
+							sqlWriter.Write("(SELECT id FROM Page WHERE title = '");
+							sqlWriter.Write(readableTitle);
+							sqlWriter.Write("'), ");
+							sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
+							sqlWriter.Write(l);
+							sqlWriter.Write("'))");
+							sqlWriter.WriteLine();
+
+							cypherWriter.Write("MATCH (s:Page),(d:Page) WHERE a.title = '");
+							cypherWriter.Write(readableTitle);
+							cypherWriter.Write("' AND b.ctitle = '");
+							cypherWriter.Write(l);
+							cypherWriter.Write("' CREATE (a)-[links_to]->(b)");
+							cypherWriter.WriteLine();
+								
+							count++;
 						}
+						separatorCount += links.Count(c => c == '|');
 						UpdateProgress(stream);
 					}
 				}
 				Console.WriteLine();
-				Console.WriteLine("Wrote " + count + " links (" + meta["TotalLinks"] + " in meta)");
+				Console.WriteLine("Wrote " + count + " links (" + meta["TotalLinks"] + " in meta, " + separatorCount + " separators)");
 			}
 
 			Console.WriteLine("Finished");
