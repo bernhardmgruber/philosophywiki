@@ -176,10 +176,12 @@ namespace DumpPreprocessor
 
 					Interlocked.Add(ref totalLinks, links.Length);
 
+					string ctitle = CanonicalPageName(page.Title);
+
 					lock (writer)
 					{
 						//writer.WriteLine(page.Id);
-						writer.WriteLine(page.Title);
+						writer.WriteLine(ctitle);
 						//writer.WriteLine(page.Text);
 						foreach (var l in links)
 							if (l.Contains('|'))

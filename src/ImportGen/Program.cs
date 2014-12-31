@@ -107,8 +107,8 @@ create table Link
 				{
 					while (!reader.EndOfStream)
 					{
-						string readableTitle = reader.ReadLine();
-						readableTitle = readableTitle.Replace("'", "''"); // escape quotes
+						string ctitle = reader.ReadLine();
+						ctitle = ctitle.Replace("'", "''"); // escape quotes
 						string links = reader.ReadLine();
 						if (links.Length > 0)
 						{
@@ -118,16 +118,16 @@ create table Link
 								var l = link.Replace("'", "''");
 
 								sqlWriter.Write("INSERT INTO Link VALUES (");
-								sqlWriter.Write("(SELECT id FROM Page WHERE title = '");
-								sqlWriter.Write(readableTitle);
+								sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
+								sqlWriter.Write(ctitle);
 								sqlWriter.Write("'), ");
 								sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
 								sqlWriter.Write(l);
 								sqlWriter.Write("'))");
 								sqlWriter.WriteLine();
 
-								cypherWriter.Write("MATCH (s:Page),(d:Page) WHERE a.title = '");
-								cypherWriter.Write(readableTitle);
+								cypherWriter.Write("MATCH (s:Page),(d:Page) WHERE a.ctitle = '");
+								cypherWriter.Write(ctitle);
 								cypherWriter.Write("' AND b.ctitle = '");
 								cypherWriter.Write(l);
 								cypherWriter.Write("' CREATE (a)-[links_to]->(b)");
