@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,18 +10,6 @@ namespace ImportGen
 {
 	class Program
 	{
-		private static int lastPercentage = -1;
-
-		private static void UpdateProgress(FileStream stream)
-		{
-			int percentage = (int)(stream.Position * 100 / stream.Length);
-			if (percentage != lastPercentage)
-			{
-				Console.Write("\b\b\b\b" + percentage + "%");
-				lastPercentage = percentage;
-			}
-		}
-
 		static void Main(string[] args)
 		{
 			Console.WriteLine("Database script generator (run on output of DumpPreprocessor)");
@@ -49,22 +38,10 @@ namespace ImportGen
 			using (var writer = new StreamWriter(stem + ".schema.sql"))
 			{
 				// write schema
-				writer.Write(@"
-create table Page
-(
-	id integer auto_increment not null primary key,
-	title varchar(240) not null,
-	ctitle varchar(240) not null,
-	constraint pkPage primary key (id)
-)
-
-create table Link
-(
-	src integer not null,
-	dst integer not null,
-	constraint pkLink primary key (src, dst)
-)
-");
+				writer.WriteLine("DROP TABLE Page");
+				writer.WriteLine("DROP TABLE Link");
+				writer.WriteLine("CREATE TABLE Page (id INTEGER IDENTITY(1,1) NOT NULL PRIMARY KEY, title VARCHAR(300) NOT NULL, ctitle VARCHAR(300) NOT NULL)");
+				writer.WriteLine("CREATE TABLE Link (src INTEGER NOT NULL, dst INTEGER NOT NULL, CONSTRAINT pkLink PRIMARY KEY (src, dst))");
 			}
 
 			using (var sqlWriter = new StreamWriter(stem + ".titles.sql"))
@@ -84,9 +61,9 @@ create table Link
 						readableTitle = readableTitle.Replace("'", "''");
 						canonicalTitle = canonicalTitle.Replace("'", "''");
 
-						sqlWriter.WriteLine("INSERT INTO Page VALUES (null, '" + readableTitle + "', '" + canonicalTitle + "')");
+						sqlWriter.WriteLine("INSERT INTO Page(title, ctitle) VALUES ('" + readableTitle + "', '" + canonicalTitle + "')");
 						cypherWriter.WriteLine("CREATE (Page { title : '" + readableTitle + "', ctitle : '" + canonicalTitle + "' })");
-						UpdateProgress(stream);
+						Utils.UpdateProgress(stream);
 						count++;
 					}
 				}
@@ -101,7 +78,7 @@ create table Link
 				Console.WriteLine("Writing links");
 				long count = 0;
 				long separatorCount = 0;
-				lastPercentage = -1;
+				Utils.lastPercentage = -1;
 				using (var stream = new FileStream(linksFile, FileMode.Open, FileAccess.Read))
 				using (var reader = new StreamReader(stream))
 				{
@@ -137,7 +114,7 @@ create table Link
 							}
 						}
 						separatorCount += links.Count(c => c == '|');
-						UpdateProgress(stream);
+						Utils.UpdateProgress(stream);
 					}
 				}
 				Console.WriteLine();

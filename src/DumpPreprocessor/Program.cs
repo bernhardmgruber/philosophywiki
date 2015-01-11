@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -53,7 +54,7 @@ namespace DumpPreprocessor
 
 				while (reader.Read())
 				{
-					UpdateProgress(stream);
+					Utils.UpdateProgress(stream);
 
 					if (reader.NodeType == XmlNodeType.Element)
 					{
@@ -120,18 +121,6 @@ namespace DumpPreprocessor
 			}
 		}
 
-		private static int lastPercentage = -1;
-
-		private static void UpdateProgress(FileStream stream)
-		{
-			int percentage = (int)(stream.Position * 100 / stream.Length);
-			if (percentage != lastPercentage)
-			{
-				Console.Write("\b\b\b\b" + percentage + "%");
-				lastPercentage = percentage;
-			}
-		}
-
 		private static void WriteMeta(RawMeta meta, TextWriter writer)
 		{
 			writer.WriteLine("File created: " + DateTime.Now);
@@ -192,7 +181,7 @@ namespace DumpPreprocessor
 				catch (Exception e)
 				{
 					Console.WriteLine("Write task failed: " + e);
-					throw e;
+					throw;
 				}
 				finally
 				{
