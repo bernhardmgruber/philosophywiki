@@ -97,10 +97,10 @@ namespace ImportGen
 								sqlWriter.Write("INSERT INTO Link VALUES (");
 								sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
 								sqlWriter.Write(ctitle);
-								sqlWriter.Write("'), ");
+								sqlWriter.Write("' COLLATE SQL_Latin1_General_CP1_CS_AS), ");
 								sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
 								sqlWriter.Write(l);
-								sqlWriter.Write("'))");
+								sqlWriter.Write("' COLLATE SQL_Latin1_General_CP1_CS_AS))");
 								sqlWriter.WriteLine();
 
 								cypherWriter.Write("MATCH (s:Page),(d:Page) WHERE a.ctitle = '");

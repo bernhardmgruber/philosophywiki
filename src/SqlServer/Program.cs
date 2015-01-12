@@ -35,13 +35,13 @@ namespace SqlServer
 
 				Console.WriteLine("\nTitles script");
 				sw.Restart();
-				database.Load(args[0] + ".titles.sql");
+				database.Load(args[0] + ".titles.sql", true);
 				sw.Stop();
 				writer.WriteLine("Titles script run took: " + sw.Elapsed);
 
 				Console.WriteLine("\nLinks script");
 				sw.Restart();
-				database.Load(args[0] + ".links.sql");
+				database.Load(args[0] + ".links.sql", true);
 				sw.Stop();
 				writer.WriteLine("Links script run took: " + sw.Elapsed);
 			}
