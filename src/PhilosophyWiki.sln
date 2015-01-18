@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServer", "SqlServer\SqlS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{2B6F706F-A681-4347-BD6E-3B1E143B84DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neo4j", "Neo4j\Neo4j.csproj", "{DA79B7A0-32B1-47B7-8302-12BA2AF879F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{2B6F706F-A681-4347-BD6E-3B1E143B84DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B6F706F-A681-4347-BD6E-3B1E143B84DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B6F706F-A681-4347-BD6E-3B1E143B84DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA79B7A0-32B1-47B7-8302-12BA2AF879F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA79B7A0-32B1-47B7-8302-12BA2AF879F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA79B7A0-32B1-47B7-8302-12BA2AF879F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA79B7A0-32B1-47B7-8302-12BA2AF879F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
