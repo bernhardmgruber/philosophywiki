@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -39,10 +40,13 @@ namespace DumpPreprocessor
 			string titleFile = args[0] + ".titles.txt";
 			string metaFile = args[0] + ".meta.txt";
 
+			var enc = (UTF7Encoding)new UTF7Encoding().Clone();
+			enc.EncoderFallback = new EncoderReplacementFallback("?");
+
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
 			using (var linkWriter = new StreamWriter(linkFile))
-			using (var titleWriter = new StreamWriter(titleFile))
+			using (var pageWriter = new StreamWriter(titleFile, true, enc))
 			using (var metaWriter = new StreamWriter(metaFile))
 			{
 				Stopwatch sw = Stopwatch.StartNew();
@@ -89,8 +93,8 @@ namespace DumpPreprocessor
 					{
 						if (reader.Name == "page")
 						{
-							WritePageTitle(page, titleWriter);
-							WritePageLinksAsync(page, linkWriter);
+							WritePage(page, pageWriter);
+							WriteLinksAsync(page, linkWriter);
 							page = null;
 						}
 						else if (page != null && reader.Name == "revision")
@@ -128,18 +132,25 @@ namespace DumpPreprocessor
 			writer.WriteLine("Generator: " + meta.Generator);
 		}
 
-		private static void WritePageTitle(RawPage page, TextWriter writer)
+		private static void WritePage(RawPage page, TextWriter writer)
 		{
 			Interlocked.Increment(ref totalTitles);
-			//writer.WriteLine(page.Id);
+			writer.WriteLine(page.Id);
 			writer.WriteLine(page.Title);
 			writer.WriteLine(CanonicalPageName(page.Title));
+			var text = page.Text;
+			writer.WriteLine(text.Length);
+
+			// UTF16 surrogates
+			// substring may split the string at a surrogate in which case an Encoder in writer.WriteLine fails. EncoderFallback has to specified!
+			var t = text.Substring(0, Math.Min(100, text.Length));
+			writer.WriteLine(t);
 		}
 
 		// does not implement the reverse pipe trick
 		private static Regex linkRegex = new Regex("\\[\\[([^#|]+?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
 
-		private static void WritePageLinksAsync(RawPage page, TextWriter writer)
+		private static void WriteLinksAsync(RawPage page, TextWriter writer)
 		{
 			// skip all pages which are not in the main/article namespace
 			// see: http://en.wikipedia.org/wiki/Wikipedia:Namespace
