@@ -40,8 +40,9 @@ namespace ImportGen
 				// write schema
 				writer.WriteLine("DROP TABLE Page");
 				writer.WriteLine("DROP TABLE Link");
-				writer.WriteLine("CREATE TABLE Page (id INTEGER IDENTITY(1,1) NOT NULL PRIMARY KEY, title VARCHAR(300) NOT NULL, ctitle VARCHAR(300) NOT NULL)");
-				writer.WriteLine("CREATE TABLE Link (src INTEGER NOT NULL, dst INTEGER NOT NULL, CONSTRAINT pkLink PRIMARY KEY (src, dst))");
+				writer.WriteLine("CREATE TABLE Page (id INTEGER IDENTITY(1,1) NOT NULL, title VARCHAR(300) NOT NULL, ctitle VARCHAR(300) NOT NULL)");
+				writer.WriteLine("CREATE TABLE Link (src INTEGER NOT NULL, dst INTEGER NOT NULL, CONSTRAINT pkLink)");
+				writer.WriteLine("CREATE INDEX Index_ctitle ON Page(ctitle)");
 			}
 
 			using (var sqlWriter = new StreamWriter(stem + ".titles.sql"))
