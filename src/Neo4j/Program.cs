@@ -47,7 +47,7 @@ namespace Neo4j
         private static Article CreateArticle(string name)
         {
             var newArticle = new Article { Name = name };
-
+            
             return client.Cypher
                 .Create("(article:Article {newArticle})")
                 .WithParam("newArticle", newArticle)
