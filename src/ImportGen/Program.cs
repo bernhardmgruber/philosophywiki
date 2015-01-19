@@ -126,7 +126,7 @@ namespace ImportGen
 								//cypherWriter.Write("' CREATE (a)-[links_to]->(b)");
 								//cypherWriter.WriteLine();
 
-								csvWriter.WriteLine(ctitle + "|" + l);
+								csvWriter.WriteLine(ctitle + csvSeparator + l);
 
 								count++;
 							}

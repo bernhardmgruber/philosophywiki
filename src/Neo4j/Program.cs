@@ -44,49 +44,32 @@ CREATE (Page { id : line[0], title : line[1], ctitle : line[2], length : line[3]
 				sw.Stop();
 				Console.WriteLine("Running title script took: " + sw.Elapsed);
 
-			//	client.Cypher
-			//		.Match("(article:Article)")
-			//		.Delete("article")
-			//		.ExecuteWithoutResults();
+				sw.Start();
+				((IRawGraphClient)client).ExecuteCypher(new CypherQuery(@"CREATE INDEX ON Page(ctitle)",new Dictionary<string, object>(),CypherResultMode.Set));
+				sw.Stop();
+				Console.WriteLine("Creating index took: " + sw.Elapsed);
 
-			//	var a = CreateArticle("Article A");
-			//	var b = CreateArticle("Article B");
-			//	var c = CreateArticle("Article C");
-			//	var d = CreateArticle("Article D");
-
-			//	LinkTo(d, c);
-			//	LinkTo(c, a);
-			//	LinkTo(b, a);
-
-			//	Console.WriteLine("Success");
+				sw.Start();
+				((IRawGraphClient)client).ExecuteCypher(
+					new CypherQuery(
+						@"
+USING PERIODIC COMMIT
+LOAD CSV FROM 'file:///D:/enwiki-20141208-pages-articles.links.csv' AS line
+FIELDTERMINATOR '\t'
+MATCH (p1:Page {ctitle : line[0]}), (p2:Page {ctitle : line[1]})
+CREATE (p1)-[links_to]->(p2)
+",
+						new Dictionary<string, object>(),
+						CypherResultMode.Set)
+					);
+				sw.Stop();
+				Console.WriteLine("Running title script took: " + sw.Elapsed);
 			}
 			catch (NeoException exc)
 			{
 				Console.WriteLine("Error: {0}", exc.Message);
 			}
 			Console.ReadKey();
-		}
-
-		private static Article CreateArticle(string name)
-		{
-			var newArticle = new Article { Name = name };
-			
-			return client.Cypher
-				.Create("(article:Article {newArticle})")
-				.WithParam("newArticle", newArticle)
-				.Return<Article>("article")
-				.Results
-				.Single();
-		}
-
-		private static void LinkTo(Article source, Article target)
-		{
-			client.Cypher
-				.Match("(s:Article)", "(t:Article)")
-				.Where((Article s) => s.Name == source.Name)
-				.AndWhere((Article t) => t.Name == target.Name)
-				.CreateUnique("s-[:links_to]->t")
-				.ExecuteWithoutResults();
 		}
 	}
 }
