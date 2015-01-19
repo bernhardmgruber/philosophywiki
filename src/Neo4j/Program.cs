@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Neo4jClient;
 using Neo4jClient.Cypher;
+using System.Diagnostics;
 
 namespace Neo4j
 {
@@ -19,28 +20,49 @@ namespace Neo4j
 
         static void Main(string[] args)
         {
-            try {
-                client = new GraphClient(new Uri("http://localhost:7474/db/data"));
-                client.Connect();
+			const string csvFile = "enwiki-20141208-pages-articles.titles.csv";
 
-                client.Cypher
-                    .Match("(article:Article)")
-                    .Delete("article")
-                    .ExecuteWithoutResults();
+			var sw = new Stopwatch();
 
-                var a = CreateArticle("Article A");
-                var b = CreateArticle("Article B");
-                var c = CreateArticle("Article C");
-                var d = CreateArticle("Article D");
+			try {
+				client = new GraphClient(new Uri("http://localhost:7474/db/data"));
+				client.Connect();
 
-                LinkTo(d, c);
-                LinkTo(c, a);
-                LinkTo(b, a);
+				sw.Start();
+				((IRawGraphClient)client).ExecuteCypher(
+					new CypherQuery(
+						@"
+USING PERIODIC COMMIT
+LOAD CSV FROM 'file:///D:/enwiki-20141208-pages-articles.titles.csv' AS line
+FIELDTERMINATOR '\t'
+CREATE (Page { id : line[0], title : line[1], ctitle : line[2], length : line[3], text : line[4] })
+",
+						new Dictionary<string, object>(),
+						CypherResultMode.Set)
+					);
+				sw.Stop();
+				Console.WriteLine("Running title script took: " + sw.Elapsed);
 
-                Console.WriteLine("Success");
-            } catch (NeoException exc) {
-                Console.WriteLine("Error: {0}", exc.Message);
-            }
+			//	client.Cypher
+			//		.Match("(article:Article)")
+			//		.Delete("article")
+			//		.ExecuteWithoutResults();
+
+			//	var a = CreateArticle("Article A");
+			//	var b = CreateArticle("Article B");
+			//	var c = CreateArticle("Article C");
+			//	var d = CreateArticle("Article D");
+
+			//	LinkTo(d, c);
+			//	LinkTo(c, a);
+			//	LinkTo(b, a);
+
+			//	Console.WriteLine("Success");
+			}
+			catch (NeoException exc)
+			{
+				Console.WriteLine("Error: {0}", exc.Message);
+			}
             Console.ReadKey();
         }
 

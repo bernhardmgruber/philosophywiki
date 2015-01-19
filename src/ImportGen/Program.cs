@@ -10,7 +10,7 @@ namespace ImportGen
 {
 	class Program
 	{
-		const char csvSeparator = '\t';
+		const string csvSeparator = "\t";
 
 		static void Main(string[] args)
 		{
@@ -126,7 +126,7 @@ namespace ImportGen
 								//cypherWriter.Write("' CREATE (a)-[links_to]->(b)");
 								//cypherWriter.WriteLine();
 
-								csvWriter.WriteLine(ctitle + csvSeparator + l);
+								csvWriter.WriteLine(ctitle + "|" + l);
 
 								count++;
 							}
