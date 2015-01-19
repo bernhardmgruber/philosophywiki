@@ -1,0 +1,7 @@
+LOAD CSV WITH HEADERS FROM "file:///D:\\articles.csv" as csvLine
+CREATE (a:Article {title: csvLine.title, text: csvLine.text});
+
+
+LOAD CSV WITH HEADERS FROM "file:///D:\\links.csv" as csvLine
+MATCH (s:Article),(t:Article) WHERE s.title = csvLine.source AND t.title = csvLine.target
+CREATE (s)-[links_to]->(t);
