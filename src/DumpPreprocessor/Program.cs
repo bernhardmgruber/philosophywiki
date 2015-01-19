@@ -40,13 +40,13 @@ namespace DumpPreprocessor
 			string titleFile = args[0] + ".titles.txt";
 			string metaFile = args[0] + ".meta.txt";
 
-			var enc = (UTF7Encoding)new UTF7Encoding().Clone();
+			var enc = (UTF8Encoding)new UTF8Encoding().Clone();
 			enc.EncoderFallback = new EncoderReplacementFallback("?");
 
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
 			using (var linkWriter = new StreamWriter(linkFile))
-			using (var pageWriter = new StreamWriter(titleFile, true, enc))
+			using (var pageWriter = new StreamWriter(titleFile, false, enc))
 			using (var metaWriter = new StreamWriter(metaFile))
 			{
 				Stopwatch sw = Stopwatch.StartNew();
@@ -93,6 +93,8 @@ namespace DumpPreprocessor
 					{
 						if (reader.Name == "page")
 						{
+							page.Text = page.Text.Replace('\n', ' ');
+							page.Text = page.Text.Replace('\t', ' ');
 							WritePage(page, pageWriter);
 							WriteLinksAsync(page, linkWriter);
 							page = null;
@@ -138,12 +140,12 @@ namespace DumpPreprocessor
 			writer.WriteLine(page.Id);
 			writer.WriteLine(page.Title);
 			writer.WriteLine(CanonicalPageName(page.Title));
-			var text = page.Text;
-			writer.WriteLine(text.Length);
+			writer.WriteLine(page.Text.Length);
 
 			// UTF16 surrogates
 			// substring may split the string at a surrogate in which case an Encoder in writer.WriteLine fails. EncoderFallback has to specified!
-			var t = text.Substring(0, Math.Min(100, text.Length));
+			var t = page.Text.Substring(0, Math.Min(100, page.Text.Length));
+			//t = t.Replace("\n", "").Replace("\r", "");
 			writer.WriteLine(t);
 		}
 
@@ -163,8 +165,6 @@ namespace DumpPreprocessor
 			{
 				try
 				{
-					page.Text = page.Text.Replace('\n', ' ');
-
 					// find links using regex and make them unique (this is expensive and can take half an hour !!!)
 					var matches = linkRegex.Matches(page.Text).Cast<Match>();
 					var matchedLinks = matches.Select(m => m.Groups[1].Value);
