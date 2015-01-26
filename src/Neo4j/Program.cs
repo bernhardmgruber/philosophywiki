@@ -10,14 +10,14 @@ using System.Net.Http;
 
 namespace Neo4j
 {
-	class Article
-	{
-		public string Name { get; set; }
-	}
+    class Article
+    {
+        public string Name { get; set; }
+    }
 
-	class Program
-	{
-		private static GraphClient client;
+    class Program
+    {
+        private static GraphClient client;
 
 		static void Main(string[] args)
 		{
@@ -27,53 +27,51 @@ namespace Neo4j
 				return;
 			}
 
-			var sw = new Stopwatch();
+            var sw = new Stopwatch();
 
-			try {
-				client = new GraphClient(new Uri("http://localhost:7474/db/data"), new HttpClientWrapper(new HttpClient() { Timeout = TimeSpan.FromDays(4) }));
-				client.Connect();
+            try {
+                client = new GraphClient(new Uri("http://localhost:7474/db/data"), new HttpClientWrapper(new HttpClient() { Timeout = TimeSpan.FromDays(4) }));
+                client.Connect();
 
-				sw.Start();
-				((IRawGraphClient)client).ExecuteCypher(
-					new CypherQuery(
-						@"
+                sw.Start();
+                ((IRawGraphClient)client).ExecuteCypher(
+                    new CypherQuery(
+                        @"
 USING PERIODIC COMMIT
 LOAD CSV FROM 'file:///" + args[0] + @".titles.utf8.csv' AS line
 FIELDTERMINATOR '\t'
-CREATE (Page { id : line[0], title : line[1], ctitle : line[2], length : line[3], text : line[4] })
+CREATE (:Page { id : line[0], title : line[1], ctitle : line[2], length : toInt(line[3]), text : line[4] })
 ",
-						new Dictionary<string, object>(),
-						CypherResultMode.Set)
-					);
-				sw.Stop();
-				Console.WriteLine("Running title script took: " + sw.Elapsed);
+                        new Dictionary<string, object>(),
+                        CypherResultMode.Set)
+                    );
+                sw.Stop();
+                Console.WriteLine("Running title script took: " + sw.Elapsed);
 
-				sw.Start();
-				((IRawGraphClient)client).ExecuteCypher(new CypherQuery(@"CREATE INDEX ON Page(ctitle)",new Dictionary<string, object>(),CypherResultMode.Set));
-				sw.Stop();
-				Console.WriteLine("Creating index took: " + sw.Elapsed);
+                sw.Start();
+                ((IRawGraphClient)client).ExecuteCypher(new CypherQuery(@"CREATE INDEX ON Page(ctitle)", new Dictionary<string, object>(), CypherResultMode.Set));
+                sw.Stop();
+                Console.WriteLine("Creating index took: " + sw.Elapsed);
 
-				sw.Start();
-				((IRawGraphClient)client).ExecuteCypher(
-					new CypherQuery(
-						@"
+                sw.Start();
+                ((IRawGraphClient)client).ExecuteCypher(
+                    new CypherQuery(
+                        @"
 USING PERIODIC COMMIT
 LOAD CSV FROM 'file:///" + args[0] + @".links.utf8.csv' AS line
 FIELDTERMINATOR '\t'
 MATCH (p1:Page {ctitle : line[0]}), (p2:Page {ctitle : line[1]})
-CREATE (p1)-[links_to]->(p2)
+CREATE (p1)-[:links_to]->(p2)
 ",
-						new Dictionary<string, object>(),
-						CypherResultMode.Set)
-					);
-				sw.Stop();
-				Console.WriteLine("Running title script took: " + sw.Elapsed);
-			}
-			catch (NeoException exc)
-			{
-				Console.WriteLine("Error: {0}", exc.Message);
-			}
-			Console.ReadKey();
-		}
-	}
+                        new Dictionary<string, object>(),
+                        CypherResultMode.Set)
+                    );
+                sw.Stop();
+                Console.WriteLine("Running title script took: " + sw.Elapsed);
+            } catch (NeoException exc) {
+                Console.WriteLine("Error: {0}", exc.Message);
+            }
+            Console.ReadKey();
+        }
+    }
 }

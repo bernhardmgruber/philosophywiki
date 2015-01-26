@@ -1,0 +1,7 @@
+MATCH (branch {ctitle: "Iron Branch"}) RETURN branch;
+MATCH (e:Page) WHERE e.length > 5000 RETURN e;
+
+MATCH (branch:Page {ctitle:"Iron Branch"})-[:links_to]->(target) RETURN branch, target;
+MATCH (eye:Page {title:"Eye of Skadi"})<-[:links_to]-(source) RETURN source, eye;
+
+MATCH (belt:Page{title:"Belt of Strength"})-[*]->(target) RETURN belt,target;

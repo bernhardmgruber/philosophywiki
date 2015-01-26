@@ -1,7 +1,10 @@
-LOAD CSV WITH HEADERS FROM "file:///D:\\articles.csv" as csvLine
-CREATE (a:Article {title: csvLine.title, text: csvLine.text});
+LOAD CSV FROM "file:///D:\\test.titles.csv" as line
+FIELDTERMINATOR ';'
+CREATE (:Page { id : line[0], title : line[1], ctitle : line[2], length : toInt(line[3]), text : line[4] });
 
 
-LOAD CSV WITH HEADERS FROM "file:///D:\\links.csv" as csvLine
-MATCH (s:Article),(t:Article) WHERE s.title = csvLine.source AND t.title = csvLine.target
-CREATE (s)-[links_to]->(t);
+LOAD CSV FROM "file:///D:\\test.links.csv" as line
+FIELDTERMINATOR ';'
+MATCH (p1:Page {ctitle : line[0]}), (p2:Page {ctitle : line[1]})
+CREATE (p1)-[:links_to]->(p2);
+
