@@ -90,7 +90,6 @@ namespace DumpPreprocessor
 					{
 						if (reader.Name == "page")
 						{
-							page.Text = Encode(page.Text);
 							page.Text = page.Text.Replace('\n', ' ');
 							page.Text = page.Text.Replace('\t', ' ');
 							WritePage(page, pageWriter);
@@ -146,24 +145,8 @@ namespace DumpPreprocessor
 			writer.WriteLine(t);
 		}
 
-		private static string Encode(string str)
-		{
-			return str;
-			//return Encoding.ASCII.GetString(
-			//	Encoding.Convert(
-			//		Encoding.Unicode,
-			//		Encoding.GetEncoding(
-			//			Encoding.ASCII.EncodingName,
-			//			new EncoderReplacementFallback(string.Empty),
-			//			new DecoderExceptionFallback()
-			//		),
-			//		Encoding.Unicode.GetBytes(str)
-			//	)
-			//);
-		}
-
 		// does not implement the reverse pipe trick
-		private static Regex linkRegex = new Regex("\\[\\[([^#|]+?)(#.*?)?(\\|.*?)?\\]\\]", RegexOptions.Compiled);
+		private static Regex linkRegex = new Regex(@"\[\[([^#|]+?)(#.*?)?(\|.*?)?\]\]", RegexOptions.Compiled);
 
 		private static void WriteLinksAsync(RawPage page, TextWriter writer)
 		{
