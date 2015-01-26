@@ -24,10 +24,10 @@ namespace DumpPreprocessor
 
 		static void Main(string[] args)
 		{
-			threadCount = Environment.ProcessorCount * 2;
+			threadCount = Environment.ProcessorCount;
 			linkWrites = new Semaphore(threadCount, threadCount);
 
-			Console.WriteLine("Wikipedia dump preprocessor (enwiki-<date>-pages-articles.xml)");
+			Console.WriteLine("Wikipedia dump preprocessor");
 
 			if (args.Length < 1)
 			{
@@ -40,14 +40,11 @@ namespace DumpPreprocessor
 			string titleFile = args[0] + ".titles.txt";
 			string metaFile = args[0] + ".meta.txt";
 
-			var enc = (UTF8Encoding)new UTF8Encoding().Clone();
-			enc.EncoderFallback = new EncoderReplacementFallback("?");
-
 			using (var stream = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
 			using (var reader = XmlReader.Create(stream))
-			using (var linkWriter = new StreamWriter(linkFile))
-			using (var pageWriter = new StreamWriter(titleFile, false, enc))
-			using (var metaWriter = new StreamWriter(metaFile))
+			using (var linkWriter = new StreamWriter(linkFile, false, Encoding.Unicode))
+			using (var pageWriter = new StreamWriter(titleFile, false, Encoding.Unicode))
+			using (var metaWriter = new StreamWriter(metaFile, false, Encoding.Unicode))
 			{
 				Stopwatch sw = Stopwatch.StartNew();
 				reader.MoveToContent();
@@ -93,6 +90,7 @@ namespace DumpPreprocessor
 					{
 						if (reader.Name == "page")
 						{
+							page.Text = Encode(page.Text);
 							page.Text = page.Text.Replace('\n', ' ');
 							page.Text = page.Text.Replace('\t', ' ');
 							WritePage(page, pageWriter);
@@ -145,8 +143,23 @@ namespace DumpPreprocessor
 			// UTF16 surrogates
 			// substring may split the string at a surrogate in which case an Encoder in writer.WriteLine fails. EncoderFallback has to specified!
 			var t = page.Text.Substring(0, Math.Min(100, page.Text.Length));
-			//t = t.Replace("\n", "").Replace("\r", "");
 			writer.WriteLine(t);
+		}
+
+		private static string Encode(string str)
+		{
+			return str;
+			//return Encoding.ASCII.GetString(
+			//	Encoding.Convert(
+			//		Encoding.Unicode,
+			//		Encoding.GetEncoding(
+			//			Encoding.ASCII.EncodingName,
+			//			new EncoderReplacementFallback(string.Empty),
+			//			new DecoderExceptionFallback()
+			//		),
+			//		Encoding.Unicode.GetBytes(str)
+			//	)
+			//);
 		}
 
 		// does not implement the reverse pipe trick
@@ -171,6 +184,7 @@ namespace DumpPreprocessor
 					var links = matchedLinks
 						.Select(l => CanonicalPageName(l))
 						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
+						.Where(l => l.Length < 300) // sanity check
 						.Distinct()
 						.ToArray(); // evaluate eager to keep locked region as short as possible
 
@@ -180,9 +194,8 @@ namespace DumpPreprocessor
 
 					lock (writer)
 					{
-						//writer.WriteLine(page.Id);
+						writer.WriteLine(page.Id);
 						writer.WriteLine(ctitle);
-						//writer.WriteLine(page.Text);
 						foreach (var l in links)
 							if (l.Contains('|'))
 								Console.WriteLine("Fatal: link " + l + " on page " + page.Title + " contains |");

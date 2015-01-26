@@ -12,7 +12,7 @@ namespace SqlServer
 {
 	sealed class SqlDatabase : IDisposable
 	{
-		private const string connectionString = @"Data Source=(LocalDB)\v11.0;AttachDbFilename=D:\wiki.mdf;Integrated Security=True;";
+		private const string connectionString = @"Data Source=(LocalDB)\v11.0;AttachDbFilename=C:\Users\dixxi\AppData\Local\Temp\wiki.mdf;Integrated Security=True;";
 
 		private SqlConnection connection;
 
@@ -21,65 +21,37 @@ namespace SqlServer
 			connection = new SqlConnection(connectionString);
 			connection.Open();
 		}
-		public void Load(string file, bool parallel = false)
+		public void RunFile(string file)
 		{
-			//const int maxThreads = 8;
-			const int batchSize = 64;
-			//sem = new Semaphore(maxThreads, maxThreads);
 			using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read))
 			using (var reader = new StreamReader(stream))
 			{
 				string line;
-				while (!reader.EndOfStream)
+				while ((line = reader.ReadLine()) != null)
 				{
-					var commands = new List<string>();
-					for (int i = 0; ((line = reader.ReadLine()) != null) && i < batchSize; i++)
-						commands.Add(line);
-
 					Utils.UpdateProgress(stream);
-					RunCommand(String.Join(";", commands), parallel);
+					Run(line);
 				}
 			}
-
-			//for (int i = 0; i < maxThreads; i++)
-			//	sem.WaitOne();
-			//sem.Dispose();
 		}
 
-		//private Semaphore sem;
-
-		private void RunCommand(string sql, bool parallel)
+		public void Run(string sql)
 		{
-			//Action cmd = () =>
-			//{
-				try
+			try
+			{
+				using (var command = connection.CreateCommand())
 				{
-					//using (var connection = new SqlConnection(connectionString))
-					//{
-						//connection.Open();
-
-						var command = connection.CreateCommand();
-						command.CommandText = sql;
-						command.ExecuteNonQuery();
-					//}
+					command.CommandText = sql;
+					command.CommandTimeout = 60 * 60 * 24 * 4; // 4 days
+					command.ExecuteNonQuery();
 				}
-				catch (SqlException e)
-				{
-					Console.WriteLine("\nSql command failed: " + sql);
-					Console.WriteLine(e);
-				}
-				//finally
-				//{
-				//	sem.Release(1);
-				//}
-			//};
-
-			//sem.WaitOne();
-
-			//if (parallel)
-			//	Task.Run(cmd);
-			//else
-			//	cmd();
+			}
+			catch (SqlException e)
+			{
+				Console.WriteLine("\nSql command failed: " + sql);
+				Console.WriteLine(e);
+				throw;
+			}
 		}
 
 		public void Dispose()

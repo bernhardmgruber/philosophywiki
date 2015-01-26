@@ -21,7 +21,11 @@ namespace Neo4j
 
 		static void Main(string[] args)
 		{
-			const string csvFile = "enwiki-20141208-pages-articles.titles.csv";
+			if (args.Length != 1)
+			{
+				Console.WriteLine("Please specify the input file stem");
+				return;
+			}
 
 			var sw = new Stopwatch();
 
@@ -34,7 +38,7 @@ namespace Neo4j
 					new CypherQuery(
 						@"
 USING PERIODIC COMMIT
-LOAD CSV FROM 'file:///D:/enwiki-20141208-pages-articles.titles.csv' AS line
+LOAD CSV FROM 'file:///" + args[0] + @".titles.utf8.csv' AS line
 FIELDTERMINATOR '\t'
 CREATE (Page { id : line[0], title : line[1], ctitle : line[2], length : line[3], text : line[4] })
 ",
@@ -54,7 +58,7 @@ CREATE (Page { id : line[0], title : line[1], ctitle : line[2], length : line[3]
 					new CypherQuery(
 						@"
 USING PERIODIC COMMIT
-LOAD CSV FROM 'file:///D:/enwiki-20141208-pages-articles.links.csv' AS line
+LOAD CSV FROM 'file:///" + args[0] + @".links.utf8.csv' AS line
 FIELDTERMINATOR '\t'
 MATCH (p1:Page {ctitle : line[0]}), (p2:Page {ctitle : line[1]})
 CREATE (p1)-[links_to]->(p2)

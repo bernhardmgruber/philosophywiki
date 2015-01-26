@@ -14,7 +14,7 @@ namespace ImportGen
 
 		static void Main(string[] args)
 		{
-			Console.WriteLine("Database script generator (run on output of DumpPreprocessor)");
+			Console.WriteLine("CSV generator");
 
 			if (args.Length < 1)
 			{
@@ -37,24 +37,13 @@ namespace ImportGen
 				meta.Add(parts[0], parts[1]);
 			}
 
-			//using (var writer = new StreamWriter(stem + ".schema.sql"))
-			//{
-			//	// write schema
-			//	writer.WriteLine("DROP TABLE Page");
-			//	writer.WriteLine("DROP TABLE Link");
-			//	writer.WriteLine("CREATE TABLE Page (id INTEGER NOT NULL, title VARCHAR(300) NOT NULL, ctitle VARCHAR(300) NOT NULL), length INTEGER NOT NULL, text VARCHAR(100) NOT NULL");
-			//	writer.WriteLine("CREATE TABLE Link (src INTEGER NOT NULL, dst INTEGER NOT NULL, CONSTRAINT pkLink)");
-			//	writer.WriteLine("CREATE INDEX Index_ctitle ON Page(ctitle)");
-			//}
-
-			//using (var sqlWriter = new StreamWriter(stem + ".titles.sql"))
-			//using (var cypherWriter = new StreamWriter(stem + ".titles.cypher"))
-			using (var csvWriter = new StreamWriter(stem + ".titles.csv"))
+			using (var csvWriter16 = new StreamWriter(stem + ".titles.utf16.csv", false, Encoding.Unicode))
+			using (var csvWriter8 = new StreamWriter(stem + ".titles.utf8.csv", false, Encoding.UTF8))
 			{
 				Console.WriteLine("Writing titles");
 				long count = 0;
 				using (var stream = new FileStream(titlesFile, FileMode.Open, FileAccess.Read))
-				using (var reader = new StreamReader(stream))
+				using (var reader = new StreamReader(stream, Encoding.Unicode))
 				{
 					while (!reader.EndOfStream)
 					{
@@ -69,15 +58,12 @@ namespace ImportGen
 						line = reader.ReadLine();
 						string pageText = line;
 
-						// escape quotes
-						readableTitle = readableTitle.Replace("'", "''");
-						canonicalTitle = canonicalTitle.Replace("'", "''");
-						pageText = pageText.Replace("'", "''");
+						if (pageText.Length > 100)
+							Console.WriteLine("Invalid page text");
 
-						//sqlWriter.WriteLine("INSERT INTO Page VALUES (" + id + ", '" + readableTitle + "', '" + canonicalTitle + "', " + pageLength + ", '" + pageText + "')");
-						//cypherWriter.WriteLine("CREATE (Page { id : " + id + ", title : '" + readableTitle + "', ctitle : '" + canonicalTitle + "', length : " + pageLength + ", text : " + pageText + " })");
-
-						csvWriter.WriteLine(id + csvSeparator + readableTitle + csvSeparator + canonicalTitle + csvSeparator + pageLength + csvSeparator + pageText);
+						string output = id + csvSeparator + readableTitle + csvSeparator + canonicalTitle + csvSeparator + pageLength + csvSeparator + pageText;
+						csvWriter16.WriteLine(output);
+						csvWriter8.WriteLine(output);
 						Utils.UpdateProgress(stream);
 						count++;
 					}
@@ -87,47 +73,29 @@ namespace ImportGen
 				Console.WriteLine("Wrote " + count + " titles (" + meta["TotalTitles"] + " in meta)");
 			}
 
-			//using (var sqlWriter = new StreamWriter(stem + ".links.sql"))
-			//using (var cypherWriter = new StreamWriter(stem + ".links.cypher"))
-			using (var csvWriter = new StreamWriter(stem + ".links.csv"))
+			using (var csvWriter16 = new StreamWriter(stem + ".links.utf16.csv", false, Encoding.Unicode))
+			using (var csvWriter8 = new StreamWriter(stem + ".links.utf8.csv", false, Encoding.UTF8))
 			{
 				Console.WriteLine("Writing links");
 				long count = 0;
 				long separatorCount = 0;
 				Utils.lastPercentage = -1;
 				using (var stream = new FileStream(linksFile, FileMode.Open, FileAccess.Read))
-				using (var reader = new StreamReader(stream))
+				using (var reader = new StreamReader(stream, Encoding.Unicode))
 				{
 					while (!reader.EndOfStream)
 					{
+						string line = reader.ReadLine();
+						int id = Convert.ToInt32(line);
 						string ctitle = reader.ReadLine();
-						ctitle = ctitle.Replace("'", "''"); // escape quotes
 						string links = reader.ReadLine();
 						if (links.Length > 0)
 						{
 							foreach (var link in links.SplitLazy('|'))
 							{
-								// escape quotes
-								var l = link.Replace("'", "''");
-
-								//sqlWriter.Write("INSERT INTO Link VALUES (");
-								//sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
-								//sqlWriter.Write(ctitle);
-								//sqlWriter.Write("' COLLATE SQL_Latin1_General_CP1_CS_AS), ");
-								//sqlWriter.Write("(SELECT id FROM Page WHERE ctitle = '");
-								//sqlWriter.Write(l);
-								//sqlWriter.Write("' COLLATE SQL_Latin1_General_CP1_CS_AS))");
-								//sqlWriter.WriteLine();
-
-								//cypherWriter.Write("MATCH (s:Page),(d:Page) WHERE a.ctitle = '");
-								//cypherWriter.Write(ctitle);
-								//cypherWriter.Write("' AND b.ctitle = '");
-								//cypherWriter.Write(l);
-								//cypherWriter.Write("' CREATE (a)-[links_to]->(b)");
-								//cypherWriter.WriteLine();
-
-								csvWriter.WriteLine(ctitle + csvSeparator + l);
-
+								string output = id + csvSeparator + link;
+								csvWriter16.WriteLine(output);
+								csvWriter8.WriteLine(output);
 								count++;
 							}
 						}
