@@ -18,7 +18,6 @@ namespace SqlServer
 				return;
 			}
 
-
 			//using (var s = new StreamReader(args[0] + ".links.utf16.csv"))
 			//{
 			//	string l;
@@ -30,9 +29,10 @@ namespace SqlServer
 			//	}
 			//}
 
-			var sw = new Stopwatch();
 			using (var writer = new StreamWriter(args[0] + ".sql-stats.txt") { AutoFlush = true })
 			{
+				var sw = new Stopwatch();
+
 				Console.WriteLine("Opening database");
 				sw.Start();
 				using (var database = new SqlDatabase())
@@ -41,21 +41,19 @@ namespace SqlServer
 					writer.WriteLine("Database opening took: " + sw.Elapsed);
 
 					{
-						Console.WriteLine("\nSchema script");
+						Console.WriteLine("\nCreating schema");
 						sw.Restart();
 						database.Run(@"
 DROP TABLE Page;
 DROP TABLE SLink;
-DROP TABLE Link;
 CREATE TABLE Page (id INTEGER NOT NULL, title NVARCHAR(300) NOT NULL, ctitle NVARCHAR(300) NOT NULL, length INTEGER NOT NULL, text NVARCHAR(110) NOT NULL);
 CREATE TABLE SLink(src INTEGER NOT NULL, dst NVARCHAR(300) NOT NULL);
-CREATE TABLE Link (src INTEGER NOT NULL, dst INTEGER NOT NULL)
 ");
 						sw.Stop();
-						writer.WriteLine("Schema script run took: " + sw.Elapsed);
+						writer.WriteLine("Creating schema took: " + sw.Elapsed);
 					}
 					{
-						Console.WriteLine("\nPage script");
+						Console.WriteLine("\nInsert pages");
 						sw.Restart();
 						database.Run(@"
 BULK INSERT Page
@@ -63,7 +61,7 @@ FROM '" + args[0] + @".titles.utf16.csv'
 WITH ( FIELDTERMINATOR = '\t', ROWTERMINATOR = '\n', DATAFILETYPE = 'widechar', BATCHSIZE = 10000 )
 ");
 						sw.Stop();
-						writer.WriteLine("Page script took: " + sw.Elapsed);
+						writer.WriteLine("Insert pages took: " + sw.Elapsed);
 					}
 					{
 						Console.WriteLine("Index on ctitle");
@@ -75,7 +73,7 @@ CREATE INDEX Index_ctitle ON Page(ctitle)
 						writer.WriteLine("Index on ctitle took: " + sw.Elapsed);
 					}
 					{
-						Console.WriteLine("\nLink script");
+						Console.WriteLine("\nInsert links");
 						sw.Restart();
 						database.Run(@"
 BULK INSERT SLink
@@ -83,7 +81,29 @@ FROM '" + args[0] + @".links.utf16.csv'
 WITH ( FIELDTERMINATOR = '\t', ROWTERMINATOR = '\n', DATAFILETYPE = 'widechar', BATCHSIZE = 10000 )
 ");
 						sw.Stop();
-						writer.WriteLine("Link script run took: " + sw.Elapsed);
+						writer.WriteLine("Insert links took: " + sw.Elapsed);
+					}
+					{
+						Console.WriteLine("\nResolving links");
+						sw.Restart();
+						database.Run(@"
+DROP TABLE Link;
+SELECT *
+INTO Link
+FROM (
+	SELECT
+		src,
+		(
+			SELECT id
+			FROM Page
+			WHERE ctitle = dst COLLATE Latin1_General_BIN
+		) AS dst
+	FROM SLink
+) links
+WHERE dst IS NOT NULL;
+");
+						sw.Stop();
+						writer.WriteLine("Resolving links took: " + sw.Elapsed);
 					}
 				}
 			}

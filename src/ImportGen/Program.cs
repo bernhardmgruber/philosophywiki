@@ -12,6 +12,11 @@ namespace ImportGen
 	{
 		const string csvSeparator = "\t";
 
+		static string q(string str)
+		{
+			return str.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("'", "\\'");
+		}
+
 		static void Main(string[] args)
 		{
 			Console.WriteLine("CSV generator");
@@ -38,7 +43,7 @@ namespace ImportGen
 			}
 
 			using (var csvWriter16 = new StreamWriter(stem + ".titles.utf16.csv", false, Encoding.Unicode))
-			using (var csvWriter8 = new StreamWriter(stem + ".titles.utf8.csv", false, Encoding.UTF8))
+			using (var csvWriter8 = new StreamWriter(stem + ".titles.utf8.csv", false, new UTF8Encoding(false)))
 			{
 				Console.WriteLine("Writing titles");
 				long count = 0;
@@ -63,6 +68,7 @@ namespace ImportGen
 
 						string output = id + csvSeparator + readableTitle + csvSeparator + canonicalTitle + csvSeparator + pageLength + csvSeparator + pageText;
 						csvWriter16.WriteLine(output);
+						output = "\"" + id + "\"" + csvSeparator + "\"" + q(readableTitle) + "\"" + csvSeparator + "\"" + q(canonicalTitle) + "\"" + csvSeparator + "\"" + pageLength + "\"" + csvSeparator + "\"" + q(pageText) + "\""; // escape quotes for Neo4j and surround by quotes
 						csvWriter8.WriteLine(output);
 						Utils.UpdateProgress(stream);
 						count++;
@@ -74,7 +80,7 @@ namespace ImportGen
 			}
 
 			using (var csvWriter16 = new StreamWriter(stem + ".links.utf16.csv", false, Encoding.Unicode))
-			using (var csvWriter8 = new StreamWriter(stem + ".links.utf8.csv", false, Encoding.UTF8))
+			using (var csvWriter8 = new StreamWriter(stem + ".links.utf8.csv", false, new UTF8Encoding(false)))
 			{
 				Console.WriteLine("Writing links");
 				long count = 0;
@@ -95,6 +101,7 @@ namespace ImportGen
 							{
 								string output = id + csvSeparator + link;
 								csvWriter16.WriteLine(output);
+								output = "\"" + id + "\"" + csvSeparator + "\"" + q(link) + "\""; // escape quotes for Neo4j and surround by quotes
 								csvWriter8.WriteLine(output);
 								count++;
 							}

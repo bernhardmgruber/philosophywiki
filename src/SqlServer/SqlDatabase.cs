@@ -12,7 +12,7 @@ namespace SqlServer
 {
 	sealed class SqlDatabase : IDisposable
 	{
-		private const string connectionString = @"Data Source=(LocalDB)\v11.0;AttachDbFilename=C:\Users\dixxi\AppData\Local\Temp\wiki.mdf;Integrated Security=True;";
+		private const string connectionString = @"Data Source=(LocalDB)\v11.0;AttachDbFilename=D:\wiki.mdf;Integrated Security=True;";
 
 		private SqlConnection connection;
 
