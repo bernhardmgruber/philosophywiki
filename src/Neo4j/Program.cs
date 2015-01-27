@@ -75,7 +75,7 @@ CREATE (:Page { id : toInt(line[0]), title : line[1], ctitle : line[2], length :
 						raw.ExecuteCypher(
 							new CypherQuery(
 								@"
-USING PERIODIC COMMIT 1000
+USING PERIODIC COMMIT 100
 LOAD CSV FROM 'file:///" + args[0] + @".links.utf8.csv' AS line
 FIELDTERMINATOR '\t'
 MATCH (p1:Page {id : toInt(line[0])}), (p2:Page {ctitle : line[1]})
