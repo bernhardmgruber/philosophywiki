@@ -1,0 +1,5 @@
+insert pages      4708 ms
+index on ctitle    122 ms
+index on id         93 ms
+insert links    194724 ms
+insert first     11291 ms

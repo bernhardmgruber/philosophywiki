@@ -147,6 +147,8 @@ namespace DumpPreprocessor
 
 		// does not implement the reverse pipe trick
 		private static Regex linkRegex = new Regex(@"\[\[([^#|]+?)(#.*?)?(\|.*?)?\]\]", RegexOptions.Compiled);
+		private static Regex removeRegex1 = new Regex(@"\{\{[^\{\}]+\}\}", RegexOptions.Compiled);
+		private static Regex removeRegex2 = new Regex(@"\([^\(\)]+?\)", RegexOptions.Compiled);
 
 		private static void WriteLinksAsync(RawPage page, TextWriter writer)
 		{
@@ -161,10 +163,39 @@ namespace DumpPreprocessor
 			{
 				try
 				{
+					// prepare page text to find first link
+					var rawText = page.Text;
+					while(true) {
+						var oldLength = rawText.Length;
+						rawText = removeRegex1.Replace(rawText, string.Empty);
+						rawText = removeRegex2.Replace(rawText, string.Empty);
+						if (oldLength == rawText.Length)
+							break;
+					}
+
+					var firstLinks = linkRegex
+						.Matches(rawText)
+						.Cast<Match>()
+						.Select(m => m.Groups[1].Value)
+						.Select(l => CanonicalPageName(l))
+						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
+						.Where(l => l.Length < 300) // sanity check
+						.GetEnumerator();
+
+					string firstLink = "Bild:";
+					while(firstLinks.MoveNext() && firstLink.StartsWith("Bild:"))
+						firstLink = firstLinks.Current;
+					if (firstLink.StartsWith("Bild:"))
+					{
+						//Console.WriteLine("Warning: Could not find a first link for " + page.Title);
+						firstLink = "";
+					}
+
 					// find links using regex and make them unique (this is expensive and can take half an hour !!!)
-					var matches = linkRegex.Matches(page.Text).Cast<Match>();
-					var matchedLinks = matches.Select(m => m.Groups[1].Value);
-					var links = matchedLinks
+					var links = linkRegex
+						.Matches(page.Text)
+						.Cast<Match>()
+						.Select(m => m.Groups[1].Value)
 						.Select(l => CanonicalPageName(l))
 						.Where(l => l.Length > 0) // yes, there are wikipedia users who put empty links in their articles ...
 						.Where(l => l.Length < 300) // sanity check
@@ -173,12 +204,10 @@ namespace DumpPreprocessor
 
 					Interlocked.Add(ref totalLinks, links.Length);
 
-					string ctitle = CanonicalPageName(page.Title);
-
 					lock (writer)
 					{
 						writer.WriteLine(page.Id);
-						writer.WriteLine(ctitle);
+						writer.WriteLine(firstLink);
 						foreach (var l in links)
 							if (l.Contains('|'))
 								Console.WriteLine("Fatal: link " + l + " on page " + page.Title + " contains |");

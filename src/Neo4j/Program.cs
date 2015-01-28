@@ -87,6 +87,24 @@ CREATE (p1)-[:links_to]->(p2)
 						sw.Stop();
 						writer.WriteLine("Insert links took: " + sw.Elapsed);
 					}
+					{
+						Console.WriteLine("Insert first links");
+						sw.Start();
+						raw.ExecuteCypher(
+							new CypherQuery(
+								@"
+USING PERIODIC COMMIT 100
+LOAD CSV FROM 'file:///" + args[0] + @".firstlinks.utf8.csv' AS line
+FIELDTERMINATOR '\t'
+MATCH (p1:Page {id : toInt(line[0])}), (p2:Page {ctitle : line[1]})
+CREATE (p1)-[:first_links_to]->(p2)
+",
+								new Dictionary<string, object>(),
+								CypherResultMode.Set)
+							);
+						sw.Stop();
+						writer.WriteLine("Insert links took: " + sw.Elapsed);
+					}
 				}
 				catch (NeoException exc)
 				{

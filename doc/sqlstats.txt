@@ -1,0 +1,9 @@
+Database opening took:      00:00:00.2456815
+Creating schema took:       00:00:00.0698824
+Insert pages took:          00:00:04.5911976
+Index on ctitle took:       00:00:00.3895349
+Index on id took:           00:00:00.3624775
+Insert links took:          00:00:11.2231396
+Resolving links took:       00:11:57.4282775
+Insert first links took:    00:00:00.4084821
+Resolving first links took: 00:00:41.6027477

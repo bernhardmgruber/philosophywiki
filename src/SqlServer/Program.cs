@@ -18,17 +18,6 @@ namespace SqlServer
 				return;
 			}
 
-			//using (var s = new StreamReader(args[0] + ".links.utf16.csv"))
-			//{
-			//	string l;
-
-			//	for (int count = 1; (l = s.ReadLine()) != null; count++)
-			//	{
-			//		if (count == 733915)
-			//			Console.WriteLine(l);
-			//	}
-			//}
-
 			using (var writer = new StreamWriter(args[0] + ".sql-stats.txt") { AutoFlush = true })
 			{
 				var sw = new Stopwatch();
@@ -46,8 +35,10 @@ namespace SqlServer
 						database.Run(@"
 DROP TABLE Page;
 DROP TABLE SLink;
+DROP TABLE SFirstLink;
 CREATE TABLE Page (id INTEGER NOT NULL, title NVARCHAR(300) NOT NULL, ctitle NVARCHAR(300) NOT NULL, length INTEGER NOT NULL, text NVARCHAR(110) NOT NULL);
 CREATE TABLE SLink(src INTEGER NOT NULL, dst NVARCHAR(300) NOT NULL);
+CREATE TABLE SFirstLink(src INTEGER NOT NULL, dst NVARCHAR(300) NOT NULL);
 ");
 						sw.Stop();
 						writer.WriteLine("Creating schema took: " + sw.Elapsed);
@@ -71,6 +62,15 @@ CREATE INDEX Index_ctitle ON Page(ctitle)
 ");
 						sw.Stop();
 						writer.WriteLine("Index on ctitle took: " + sw.Elapsed);
+					}
+					{
+						Console.WriteLine("Index on id");
+						sw.Restart();
+						database.Run(@"
+CREATE INDEX Index_id ON Page(id)
+");
+						sw.Stop();
+						writer.WriteLine("Index on id took: " + sw.Elapsed);
 					}
 					{
 						Console.WriteLine("\nInsert links");
@@ -104,6 +104,39 @@ WHERE dst IS NOT NULL;
 ");
 						sw.Stop();
 						writer.WriteLine("Resolving links took: " + sw.Elapsed);
+					}
+					{
+						Console.WriteLine("\nInsert first links");
+						sw.Restart();
+						database.Run(@"
+BULK INSERT SFirstLink
+FROM '" + args[0] + @".firstlinks.utf16.csv'
+WITH ( FIELDTERMINATOR = '\t', ROWTERMINATOR = '\n', DATAFILETYPE = 'widechar', BATCHSIZE = 10000 )
+");
+						sw.Stop();
+						writer.WriteLine("Insert first links took: " + sw.Elapsed);
+					}
+					{
+						Console.WriteLine("\nResolving first links");
+						sw.Restart();
+						database.Run(@"
+DROP TABLE FirstLink;
+SELECT *
+INTO FirstLink
+FROM (
+	SELECT
+		src,
+		(
+			SELECT id
+			FROM Page
+			WHERE ctitle = dst COLLATE Latin1_General_BIN
+		) AS dst
+	FROM SFirstLink
+) links
+WHERE dst IS NOT NULL;
+");
+						sw.Stop();
+						writer.WriteLine("Resolving first links took: " + sw.Elapsed);
 					}
 				}
 			}
