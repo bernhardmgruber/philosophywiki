@@ -133,7 +133,7 @@ MATCH (p)<-[:links_to*1.." + hop + @"]-(a:Page)RETURN COUNT(DISTINCT(a));
 								foreach (var r in raw.ExecuteGetCypherResults<string>(
 									new CypherQuery(
 										@"
-					MATCH (p:Page {title:'Jesus'})
+MATCH (p:Page {title:'Jesus'})
 MATCH (p)<-[:links_to*1.." + hop + @"]-(a:Page)RETURN DISTINCT(a);
 ",
 										new Dictionary<string, object>(),
