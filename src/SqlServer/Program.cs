@@ -161,11 +161,19 @@ WHERE p.title='Jesus'
 							Console.WriteLine("Jesus 2 hop");
 							sw.Restart();
 							Console.WriteLine(database.RunScalar(@"
-SELECT COUNT(DISTINCT(l2.src))
-FROM Page p
-	JOIN Link l1 ON p.id = l1.dst
-	JOIN Link l2 ON l2.dst = l1.src
-WHERE p.title='Jesus'
+SELECT COUNT(DISTINCT(l.src))
+FROM (
+		SELECT l1.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l2.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+		WHERE p.title='Jesus'
+) l;
 "));
 							sw.Stop();
 							writer.WriteLine("Jesus 2 hop took: " + sw.Elapsed);
@@ -177,12 +185,26 @@ WHERE p.title='Jesus'
 							Console.WriteLine("Jesus 3 hop");
 							sw.Restart();
 							Console.WriteLine(database.RunScalar(@"
-SELECT COUNT(DISTINCT(l3.src))
-FROM Page p
-	JOIN Link l1 ON p.id = l1.dst
-	JOIN Link l2 ON l2.dst = l1.src
-	JOIN Link l3 ON l3.dst = l2.src
-WHERE p.title='Philosophie'
+SELECT COUNT(DISTINCT(l.src))
+FROM (
+		SELECT l1.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l2.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l3.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+		WHERE p.title='Jesus'
+) l;
 "));
 							sw.Stop();
 							writer.WriteLine("Jesus 3 hop took: " + sw.Elapsed);
@@ -194,13 +216,34 @@ WHERE p.title='Philosophie'
 							Console.WriteLine("Jesus 4 hop");
 							sw.Restart();
 							Console.WriteLine(database.RunScalar(@"
-SELECT COUNT(DISTINCT(l4.src))
-FROM Page p
-	JOIN Link l1 ON p.id = l1.dst
-	JOIN Link l2 ON l2.dst = l1.src
-	JOIN Link l3 ON l3.dst = l2.src
-	JOIN Link l4 ON l4.dst = l3.src
-WHERE p.title='Jesus'
+SELECT COUNT(DISTINCT(l.src))
+FROM (
+		SELECT l1.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l2.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l3.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l4.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+			JOIN Link l4 ON l4.dst = l3.src
+		WHERE p.title='Jesus'
+) l;
 "));
 							sw.Stop();
 							writer.WriteLine("Jesus 4 hop took: " + sw.Elapsed);
@@ -212,14 +255,43 @@ WHERE p.title='Jesus'
 							Console.WriteLine("Jesus 5 hop");
 							sw.Restart();
 							Console.WriteLine(database.RunScalar(@"
-SELECT COUNT(DISTINCT(l5.src))
-FROM Page p
-	JOIN Link l1 ON p.id = l1.dst
-	JOIN Link l2 ON l2.dst = l1.src
-	JOIN Link l3 ON l3.dst = l2.src
-	JOIN Link l4 ON l4.dst = l3.src
-	JOIN Link l5 ON l5.dst = l4.src
-WHERE p.title='Jesus'
+SELECT COUNT(DISTINCT(l.src))
+FROM (
+		SELECT l1.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l2.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l3.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l4.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+			JOIN Link l4 ON l4.dst = l3.src
+		WHERE p.title='Jesus'
+	UNION ALL
+		SELECT l5.src
+		FROM Page p
+			JOIN Link l1 ON p.id = l1.dst
+			JOIN Link l2 ON l2.dst = l1.src
+			JOIN Link l3 ON l3.dst = l2.src
+			JOIN Link l4 ON l4.dst = l3.src
+			JOIN Link l5 ON l5.dst = l4.src
+		WHERE p.title='Jesus'
+) l;
 "));
 							sw.Stop();
 							writer.WriteLine("Jesus 5 hop took: " + sw.Elapsed);
@@ -238,7 +310,7 @@ FROM Page p
 		FROM Page p
 			JOIN Link l1 ON p.id = l1.dst
 		WHERE p.title='Jesus'
-	) l ON p.id = l.src
+	) l ON p.id = l.src;
 					");
 							sw.Stop();
 							writer.WriteLine("Jesus 1 hop with pages took: " + sw.Elapsed);
@@ -253,12 +325,20 @@ FROM Page p
 SELECT *
 FROM Page p
 	JOIN (
-		SELECT DISTINCT(l2.src)
-		FROM Page p
-			JOIN Link l1 ON p.id = l1.dst
-			JOIN Link l2 ON l2.dst = l1.src
-		WHERE p.title='Jesus'
-	) l ON p.id = l.src
+		SELECT DISTINCT(l.src)
+		FROM (
+				SELECT l1.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l2.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+				WHERE p.title='Jesus'
+		) l
+	) l ON p.id = l.src;
 					");
 							sw.Stop();
 							writer.WriteLine("Jesus 2 hop with pages took: " + sw.Elapsed);
@@ -273,13 +353,27 @@ FROM Page p
 SELECT *
 FROM Page p
 	JOIN (
-		SELECT DISTINCT(l3.src)
-		FROM Page p
-			JOIN Link l1 ON p.id = l1.dst
-			JOIN Link l2 ON l2.dst = l1.src
-			JOIN Link l3 ON l3.dst = l2.src
-		WHERE p.title='Philosophie'
-	) l ON p.id = l.src
+		SELECT DISTINCT(l.src)
+		FROM (
+				SELECT l1.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l2.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l3.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+				WHERE p.title='Jesus'
+		) l
+	) l ON p.id = l.src;
 					");
 							sw.Stop();
 							writer.WriteLine("Jesus 3 hop with pages took: " + sw.Elapsed);
@@ -294,14 +388,35 @@ FROM Page p
 SELECT *
 FROM Page p
 	JOIN (
-		SELECT DISTINCT(l4.src)
-		FROM Page p
-			JOIN Link l1 ON p.id = l1.dst
-			JOIN Link l2 ON l2.dst = l1.src
-			JOIN Link l3 ON l3.dst = l2.src
-			JOIN Link l4 ON l4.dst = l3.src
-		WHERE p.title='Jesus'
-	) l ON p.id = l.src
+		SELECT DISTINCT(l.src)
+		FROM (
+				SELECT l1.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l2.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l3.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l4.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+					JOIN Link l4 ON l4.dst = l3.src
+				WHERE p.title='Jesus'
+		) l
+	) l ON p.id = l.src;
 					");
 							sw.Stop();
 							writer.WriteLine("Jesus 4 hop with pages took: " + sw.Elapsed);
@@ -316,15 +431,44 @@ FROM Page p
 SELECT *
 FROM Page p
 	JOIN (
-		SELECT DISTINCT(l5.src)
-		FROM Page p
-			JOIN Link l1 ON p.id = l1.dst
-			JOIN Link l2 ON l2.dst = l1.src
-			JOIN Link l3 ON l3.dst = l2.src
-			JOIN Link l4 ON l4.dst = l3.src
-			JOIN Link l5 ON l5.dst = l4.src
-		WHERE p.title='Jesus'
-	) l ON p.id = l.src
+		SELECT DISTINCT(l.src)
+		FROM (
+				SELECT l1.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l2.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l3.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l4.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+					JOIN Link l4 ON l4.dst = l3.src
+				WHERE p.title='Jesus'
+			UNION ALL
+				SELECT l5.src
+				FROM Page p
+					JOIN Link l1 ON p.id = l1.dst
+					JOIN Link l2 ON l2.dst = l1.src
+					JOIN Link l3 ON l3.dst = l2.src
+					JOIN Link l4 ON l4.dst = l3.src
+					JOIN Link l5 ON l5.dst = l4.src
+				WHERE p.title='Jesus'
+		) l
+	) l ON p.id = l.src;
 					");
 							sw.Stop();
 							writer.WriteLine("Jesus 5 hop with pages took: " + sw.Elapsed);
