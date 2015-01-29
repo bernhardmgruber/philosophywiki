@@ -54,6 +54,45 @@ namespace SqlServer
 			}
 		}
 
+		public object RunScalar(string sql)
+		{
+			try
+			{
+				using (var command = connection.CreateCommand())
+				{
+					command.CommandText = sql;
+					command.CommandTimeout = 60 * 60 * 24 * 4; // 4 days
+					return command.ExecuteScalar();
+				}
+			}
+			catch (SqlException e)
+			{
+				Console.WriteLine("\nSql command failed: " + sql);
+				Console.WriteLine(e);
+				throw;
+			}
+		}
+
+		public void RunReader(string sql)
+		{
+			try
+			{
+				using (var command = connection.CreateCommand())
+				{
+					command.CommandText = sql;
+					command.CommandTimeout = 60 * 60 * 24 * 4; // 4 days
+					using(var reader = command.ExecuteReader())
+						while (reader.Read());
+				}
+			}
+			catch (SqlException e)
+			{
+				Console.WriteLine("\nSql command failed: " + sql);
+				Console.WriteLine(e);
+				throw;
+			}
+		}
+
 		public void Dispose()
 		{
 			connection.Close();

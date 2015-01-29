@@ -11,14 +11,11 @@ using System.IO;
 
 namespace Neo4j
 {
-	class Article
-	{
-		public string Name { get; set; }
-	}
-
 	class Program
 	{
 		private static GraphClient client;
+
+		const int count = 10;
 
 		static void Main(string[] args)
 		{
@@ -28,7 +25,7 @@ namespace Neo4j
 				return;
 			}
 
-			using (var writer = new StreamWriter(args[0] + ".sql-stats.txt") { AutoFlush = true })
+			using (var writer = new StreamWriter(args[0] + ".neo-stats.txt") { AutoFlush = true })
 			{
 				var sw = new Stopwatch();
 
@@ -40,7 +37,7 @@ namespace Neo4j
 
 					{
 						Console.WriteLine("Insert pages");
-						sw.Start();
+						sw.Restart();
 						raw.ExecuteCypher(
 							new CypherQuery(
 								@"
@@ -57,21 +54,21 @@ CREATE (:Page { id : toInt(line[0]), title : line[1], ctitle : line[2], length :
 					}
 					{
 						Console.WriteLine("Index on ctitle");
-						sw.Start();
+						sw.Restart();
 						raw.ExecuteCypher(new CypherQuery(@"CREATE INDEX ON :Page(ctitle)", new Dictionary<string, object>(), CypherResultMode.Set));
 						sw.Stop();
 						writer.WriteLine("Index on ctitle took: " + sw.Elapsed);
 					}
 					{
 						Console.WriteLine("Index on id");
-						sw.Start();
+						sw.Restart();
 						raw.ExecuteCypher(new CypherQuery(@"CREATE INDEX ON :Page(id)", new Dictionary<string, object>(), CypherResultMode.Set));
 						sw.Stop();
 						writer.WriteLine("Index on id took: " + sw.Elapsed);
 					}
 					{
 						Console.WriteLine("Insert links");
-						sw.Start();
+						sw.Restart();
 						raw.ExecuteCypher(
 							new CypherQuery(
 								@"
@@ -89,7 +86,7 @@ CREATE (p1)-[:links_to]->(p2)
 					}
 					{
 						Console.WriteLine("Insert first links");
-						sw.Start();
+						sw.Restart();
 						raw.ExecuteCypher(
 							new CypherQuery(
 								@"
@@ -104,6 +101,68 @@ CREATE (p1)-[:first_links_to]->(p2)
 							);
 						sw.Stop();
 						writer.WriteLine("Insert links took: " + sw.Elapsed);
+					}
+					{
+						for (int hop = 5; hop <= 5; hop++)
+						{
+							for (int i = 0; i < count; i++)
+							{
+								Console.WriteLine("Jesus " + hop + " hop");
+								sw.Restart();
+								raw.ExecuteCypher(
+									new CypherQuery(
+										@"
+MATCH (p:Page {title:'Jesus'})
+MATCH (p)<-[:links_to*1.." + hop + @"]-(a:Page)RETURN COUNT(DISTINCT(a));
+",
+										new Dictionary<string, object>(),
+										CypherResultMode.Set)
+									);
+								sw.Stop();
+								writer.WriteLine("Jesus " + hop + " hop took: " + sw.Elapsed);
+							}
+						}
+					}
+					{
+						for (int hop = 5; hop <= 5; hop++)
+						{
+							for (int i = 0; i < count; i++)
+							{
+								Console.WriteLine("Jesus " + hop + " hop with data");
+								sw.Restart();
+								foreach (var r in raw.ExecuteGetCypherResults<string>(
+									new CypherQuery(
+										@"
+					MATCH (p:Page {title:'Jesus'})
+MATCH (p)<-[:links_to*1.." + hop + @"]-(a:Page)RETURN DISTINCT(a);
+",
+										new Dictionary<string, object>(),
+										CypherResultMode.Set)
+									))
+									//Console.WriteLine(r);
+									;
+								sw.Stop();
+								writer.WriteLine("Jesus " + hop + " hop with data took: " + sw.Elapsed);
+							}
+						}
+					}
+					{
+						for (int i = 0; i < count; i++)
+						{
+							Console.WriteLine("Philosophy first links");
+							sw.Restart();
+							raw.ExecuteCypher(
+								new CypherQuery(
+									@"
+MATCH (p:Page {title:'Philosophie'})
+MATCH (p)<-[:first_links_to*]-(a:Page)RETURN COUNT(DISTINCT(a));
+",
+									new Dictionary<string, object>(),
+									CypherResultMode.Set)
+								);
+							sw.Stop();
+							writer.WriteLine("Philosophy first links took: " + sw.Elapsed);
+						}
 					}
 				}
 				catch (NeoException exc)
